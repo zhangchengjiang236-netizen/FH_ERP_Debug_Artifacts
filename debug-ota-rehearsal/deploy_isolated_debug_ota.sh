@@ -23,7 +23,7 @@ new_update=0
 
 rollback() {
   rc=$?
-  trap - ERR INT TERM
+  trap - EXIT ERR INT TERM
   if [ "$finished" -eq 0 ] && [ -d "$backup_root" ]; then
     [ ! -f "$backup_root/snippet.before" ] || cp -a "$backup_root/snippet.before" "$snippet"
     if [ "$had_debug_manifest" -eq 1 ]; then
@@ -41,7 +41,7 @@ rollback() {
   rm -rf "$tmp"
   exit "$rc"
 }
-trap rollback ERR INT TERM
+trap rollback EXIT ERR INT TERM
 
 [ "$(sha256sum "$snippet" | awk '{print $1}')" = "$expected_snippet" ] || {
   echo SNIPPET_CHANGED_STOP
@@ -192,7 +192,7 @@ printf '%s\n' \
   'The stable manifest was not changed.' > "$backup_root/ROLLBACK.txt"
 
 finished=1
-trap - ERR INT TERM
+trap - EXIT ERR INT TERM
 rm -rf "$tmp"
 printf 'DEBUG_OTA_STATIC_DEPLOYED\nMANIFEST_URL=%s/mobile-updates/android/debug.json\nMANIFEST_SHA256=%s\nBASELINE_URL=%s/mobile-updates/debug-packages/%s\nBASELINE_SHA256=%s\nUPDATE_URL=%s/mobile-updates/debug-packages/%s\nUPDATE_SHA256=%s\nSIGNER_SHA256=%s\nSTABLE_JSON=%s\nBACKUP_ID=%s\nSTATUS=PENDING_REAL_DEVICE_DEBUG_OTA_VERIFICATION\n' \
   "$host" "$manifest_hash" "$host" "$baseline" "$baseline_hash" "$host" "$update" "$update_hash" \
