@@ -1,5 +1,5 @@
 #!/bin/bash
-set -Eeuo pipefail
+set -euo pipefail
 
 snippet=/etc/nginx/snippets/erp-uat-updates.conf
 root=/var/www/erp-uat-updates
