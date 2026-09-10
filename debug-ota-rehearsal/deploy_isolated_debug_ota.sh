@@ -131,6 +131,22 @@ printf '%s\n' "$check"
   echo DUPLICATE_SERVER_NAME_AFTER_ROUTE
   return 25
 }
+active=$(nginx -T 2>&1) || {
+  printf '%s\n' "$active"
+  return 26
+}
+! grep -qi 'conflicting server name' <<<"$active" || {
+  echo DUPLICATE_SERVER_NAME_IN_ACTIVE_CONFIG
+  return 25
+}
+[ "$(grep -cF 'location = /mobile-updates/android/debug.json' <<<"$active")" -eq 1 ] || {
+  echo DEBUG_MANIFEST_ROUTE_NOT_UNIQUE
+  return 26
+}
+[ "$(grep -cF 'location ^~ /mobile-updates/debug-packages/' <<<"$active")" -eq 1 ] || {
+  echo DEBUG_PACKAGE_ROUTE_NOT_UNIQUE
+  return 26
+}
 
 install_one() {
   name=$1
@@ -161,9 +177,14 @@ mv -f "$root/android/.debug.json.pending.$$" "$root/android/debug.json"
 systemctl reload nginx
 
 manifest_url=$host/mobile-updates/android/debug.json
-meta=$(curl -sS --proto '=https' --tlsv1.2 --max-redirs 0 --connect-timeout 20 --max-time 60 \
-  -H 'Origin: https://appassets.androidplatform.net' -D "$tmp/headers" \
-  -w '%{http_code} %{num_redirects} %{url_effective}' -o "$tmp/readback.json" "$manifest_url")
+meta=
+for attempt in 1 2 3 4 5 6 7 8 9 10; do
+  meta=$(curl -sS --proto '=https' --tlsv1.2 --max-redirs 0 --connect-timeout 20 --max-time 60 \
+    -H 'Origin: https://appassets.androidplatform.net' -D "$tmp/headers" \
+    -w '%{http_code} %{num_redirects} %{url_effective}' -o "$tmp/readback.json" "$manifest_url") || true
+  [ "$meta" = "200 0 $manifest_url" ] && break
+  sleep 1
+done
 [ "$meta" = "200 0 $manifest_url" ] || {
   echo "HTTPS_MANIFEST_REJECTED $meta"
   return 29
