@@ -83,18 +83,6 @@ unknown=$(grep -RIlE '^[[:space:]]*server_name[[:space:]].*api-test[.]scxmj[.]cn
   echo ACTIVE_SITE_NOT_FOUND
   exit 22
 }
-find /etc/nginx/sites-enabled -maxdepth 1 -type f -name 'wlh-test-api.erp-uat-backup-*' \
-  -exec mv -t "$backup_root/enabled-backups" -- {} +
-check=$(nginx -t 2>&1) || {
-  printf '%s\n' "$check"
-  exit 23
-}
-printf '%s\n' "$check"
-! grep -qi 'conflicting server name' <<<"$check" || {
-  echo DUPLICATE_SERVER_NAME_REMAINS
-  exit 24
-}
-
 [ "$(grep -cF '/mobile-updates/android/debug.json' "$snippet")" -eq 0 ]
 [ "$(grep -cF '/mobile-updates/debug-packages/' "$snippet")" -eq 0 ]
 pending=$snippet.pending.$$
@@ -117,14 +105,29 @@ printf '%s\n' \
   '    add_header X-Content-Type-Options "nosniff" always;' \
   '}' >> "$pending"
 mv -f "$pending" "$snippet"
+
+# Disable only the two explicitly allow-listed historical site copies, and do
+# it immediately before the final syntax/duplicate gate.  This avoids leaving
+# a window in which a control-plane reconciliation can reintroduce the copies
+# between route preparation and validation.
+shopt -s nullglob
+backup_candidates=(/etc/nginx/sites-enabled/wlh-test-api.erp-uat-backup-*)
+shopt -u nullglob
+for candidate in "${backup_candidates[@]}"; do
+  [[ "$candidate" =~ ^/etc/nginx/sites-enabled/wlh-test-api[.]erp-uat-backup-[A-Za-z0-9_-]+$ ]] || {
+    echo UNEXPECTED_BACKUP_NAME
+    exit 23
+  }
+  mv -- "$candidate" "$backup_root/enabled-backups/"
+done
 check=$(nginx -t 2>&1) || {
   printf '%s\n' "$check"
-  exit 25
+  exit 24
 }
 printf '%s\n' "$check"
 ! grep -qi 'conflicting server name' <<<"$check" || {
   echo DUPLICATE_SERVER_NAME_AFTER_ROUTE
-  exit 26
+  exit 25
 }
 
 install_one() {
