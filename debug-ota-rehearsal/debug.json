@@ -1,0 +1,15 @@
+{
+  "channel": "debug",
+  "downloadUrl": "https://api-test.scxmj.cn/mobile-updates/debug-packages/feihong-erp-0.9.5-debug-update.apk",
+  "fileSize": 1024972,
+  "mandatory": false,
+  "minimumVersion": "90401",
+  "platform": "android",
+  "publishedAt": "2026-09-10T14:33:52Z",
+  "releaseNotes": "Debug OTA 演练：修复完整 ERP 移动页面、公司 Logo、登录、报销、审批、记录、设置与版本检查。",
+  "schemaVersion": 1,
+  "sha256": "8103841366f2f5d303fa936feaa65af275404956ead128a604f615f75f556aef",
+  "signingIdentity": "sha256:a182e8f2b6b60e71acf6e29184558fd3b210b5c8748a8beeb75de0bace3355a4",
+  "versionCode": 90501,
+  "versionName": "0.9.5-debug.1"
+}
