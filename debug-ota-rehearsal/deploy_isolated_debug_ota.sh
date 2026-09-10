@@ -23,7 +23,7 @@ new_update=0
 
 rollback() {
   rc=$?
-  trap - EXIT ERR INT TERM
+  trap - ERR INT TERM
   if [ "$finished" -eq 0 ] && [ -d "$backup_root" ]; then
     [ ! -f "$backup_root/snippet.before" ] || cp -a "$backup_root/snippet.before" "$snippet"
     if [ "$had_debug_manifest" -eq 1 ]; then
@@ -41,11 +41,13 @@ rollback() {
   rm -rf "$tmp"
   exit "$rc"
 }
-trap rollback EXIT ERR INT TERM
+trap rollback ERR INT TERM
+
+main() {
 
 [ "$(sha256sum "$snippet" | awk '{print $1}')" = "$expected_snippet" ] || {
   echo SNIPPET_CHANGED_STOP
-  exit 20
+  return 20
 }
 stable_before=MISSING
 [ ! -f "$root/android/stable.json" ] || stable_before=$(sha256sum "$root/android/stable.json" | awk '{print $1}')
@@ -77,11 +79,11 @@ unknown=$(grep -RIlE '^[[:space:]]*server_name[[:space:]].*api-test[.]scxmj[.]cn
   | grep -vE '^/etc/nginx/sites-enabled/wlh-test-api([.]erp-uat-backup-[A-Za-z0-9_-]+)?$' || true)
 [ -z "$unknown" ] || {
   printf 'UNEXPECTED_API_TEST_CONFIG=%s\n' "$unknown"
-  exit 21
+  return 21
 }
 [ -f /etc/nginx/sites-enabled/wlh-test-api ] || {
   echo ACTIVE_SITE_NOT_FOUND
-  exit 22
+  return 22
 }
 [ "$(grep -cF '/mobile-updates/android/debug.json' "$snippet")" -eq 0 ]
 [ "$(grep -cF '/mobile-updates/debug-packages/' "$snippet")" -eq 0 ]
@@ -116,18 +118,18 @@ shopt -u nullglob
 for candidate in "${backup_candidates[@]}"; do
   [[ "$candidate" =~ ^/etc/nginx/sites-enabled/wlh-test-api[.]erp-uat-backup-[A-Za-z0-9_-]+$ ]] || {
     echo UNEXPECTED_BACKUP_NAME
-    exit 23
+    return 23
   }
   mv -- "$candidate" "$backup_root/enabled-backups/"
 done
 check=$(nginx -t 2>&1) || {
   printf '%s\n' "$check"
-  exit 24
+  return 24
 }
 printf '%s\n' "$check"
 ! grep -qi 'conflicting server name' <<<"$check" || {
   echo DUPLICATE_SERVER_NAME_AFTER_ROUTE
-  exit 25
+  return 25
 }
 
 install_one() {
@@ -139,7 +141,7 @@ install_one() {
   if [ -e "$dest" ]; then
     [ "$(sha256sum "$dest" | awk '{print $1}')" = "$hash" ] \
       && [ "$(stat -c%s "$dest")" = "$size" ] \
-      || { echo EXISTING_PACKAGE_MISMATCH; exit 27; }
+      || { echo EXISTING_PACKAGE_MISMATCH; return 27; }
   else
     install -m 0644 "$tmp/$name" "$root/debug-packages/.$name.pending"
     mv -n "$root/debug-packages/.$name.pending" "$dest"
@@ -164,7 +166,7 @@ meta=$(curl -sS --proto '=https' --tlsv1.2 --max-redirs 0 --connect-timeout 20 -
   -w '%{http_code} %{num_redirects} %{url_effective}' -o "$tmp/readback.json" "$manifest_url")
 [ "$meta" = "200 0 $manifest_url" ] || {
   echo "HTTPS_MANIFEST_REJECTED $meta"
-  exit 29
+  return 29
 }
 tr -d '\r' < "$tmp/headers" > "$tmp/headers.clean"
 grep -Fqi 'Content-Type: application/json' "$tmp/headers.clean"
@@ -183,7 +185,7 @@ stable_after=MISSING
 [ ! -f "$root/android/stable.json" ] || stable_after=$(sha256sum "$root/android/stable.json" | awk '{print $1}')
 [ "$stable_before" = "$stable_after" ] || {
   echo STABLE_MANIFEST_CHANGED
-  exit 28
+  return 28
 }
 printf '%s\n' \
   "Restore config: cp -a $backup_root/snippet.before $snippet && nginx -t && systemctl reload nginx" \
@@ -192,8 +194,11 @@ printf '%s\n' \
   'The stable manifest was not changed.' > "$backup_root/ROLLBACK.txt"
 
 finished=1
-trap - EXIT ERR INT TERM
+trap - ERR INT TERM
 rm -rf "$tmp"
 printf 'DEBUG_OTA_STATIC_DEPLOYED\nMANIFEST_URL=%s/mobile-updates/android/debug.json\nMANIFEST_SHA256=%s\nBASELINE_URL=%s/mobile-updates/debug-packages/%s\nBASELINE_SHA256=%s\nUPDATE_URL=%s/mobile-updates/debug-packages/%s\nUPDATE_SHA256=%s\nSIGNER_SHA256=%s\nSTABLE_JSON=%s\nBACKUP_ID=%s\nSTATUS=PENDING_REAL_DEVICE_DEBUG_OTA_VERIFICATION\n' \
   "$host" "$manifest_hash" "$host" "$baseline" "$baseline_hash" "$host" "$update" "$update_hash" \
   a182e8f2b6b60e71acf6e29184558fd3b210b5c8748a8beeb75de0bace3355a4 "$stable_after" "erp-uat-debug-ota-$ts"
+}
+
+main
