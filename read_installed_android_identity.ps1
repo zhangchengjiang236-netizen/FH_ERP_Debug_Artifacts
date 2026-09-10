@@ -28,7 +28,8 @@ $paths = Invoke-Checked $AdbPath @('-s', $serial, 'shell', 'pm', 'path', $Packag
 $base = @($paths -split "`r?`n" | Where-Object { $_ -match '^package:.*/base\.apk$' } | Select-Object -First 1)
 if ($base.Count -ne 1) { throw "The installed base APK for $PackageId was not found." }
 $remoteApk = $base[0].Substring('package:'.Length)
-$temporary = Join-Path ([System.IO.Path]::GetTempPath()) ("$($PackageId.Replace('.', '_'))-$serial-base.apk")
+$safeSerial = $serial -replace '[^A-Za-z0-9._-]', '_'
+$temporary = Join-Path ([System.IO.Path]::GetTempPath()) ("$($PackageId.Replace('.', '_'))-$safeSerial-base.apk")
 
 try {
   Invoke-Checked $AdbPath @('-s', $serial, 'pull', $remoteApk, $temporary) | Out-Null
