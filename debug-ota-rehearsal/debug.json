@@ -1,15 +1,15 @@
 {
   "channel": "debug",
-  "downloadUrl": "https://api-test.scxmj.cn/mobile-updates/debug-packages/feihong-erp-0.9.6-debug-update.apk",
-  "fileSize": 1025256,
+  "downloadUrl": "https://api-test.scxmj.cn/mobile-updates/debug-packages/feihong-erp-0.9.7-debug-update.apk",
+  "fileSize": 1027252,
   "mandatory": false,
-  "minimumVersion": "90501",
+  "minimumVersion": "90601",
   "platform": "android",
-  "publishedAt": "2026-09-11T03:02:56Z",
-  "releaseNotes": "Debug OTA 演练：登录页新增设置入口，登录后保留设置导航，可查看版本、管理自动检查、手动检查更新及关于飞宏 ERP。",
+  "publishedAt": "2026-09-11T07:04:14Z",
+  "releaseNotes": "移动界面确认版：首页显示银行余额、应收汇总、应付汇总；财务明细保留银行余额、应收明细、应付明细；保留四项导航与右上角设置。",
   "schemaVersion": 1,
-  "sha256": "9ee1dec99235a0d875e126aa17000298cc18bba8e86a839f7b397c0c72aba727",
+  "sha256": "2dc392da270ab76214666aacca7233cc33a088977458a214d0d05312bfd5e93f",
   "signingIdentity": "sha256:a182e8f2b6b60e71acf6e29184558fd3b210b5c8748a8beeb75de0bace3355a4",
-  "versionCode": 90601,
-  "versionName": "0.9.6-debug.1"
+  "versionCode": 90701,
+  "versionName": "0.9.7-debug.1"
 }
